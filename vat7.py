@@ -1,7 +1,7 @@
 import sys
 from datetime import datetime, date, timezone, timedelta
 
-from data import subject, invoices
+from data import subject, vat_invoices
 
 
 def to_vat7(subject, invoices, month):
@@ -107,4 +107,4 @@ def to_vat7(subject, invoices, month):
 </Deklaracja>
 """
 
-print(to_vat7(subject, invoices, sys.argv[1]))
+print(to_vat7(subject, vat_invoices, sys.argv[1]))

@@ -4,6 +4,11 @@ import yaml
 from datetime import date
 from dataclasses import dataclass
 from itertools import chain
+import decimal
+from decimal import Decimal
+
+# Rounding required by law
+decimal.getcontext().rounding = decimal.ROUND_HALF_UP
 
 
 @dataclass
@@ -26,8 +31,9 @@ class Subject(Entity):
 	email: str = None
 	phone: str = None
 	tax_office_code: str = None
-	auth_amount: float = None
+	auth_amount: Decimal = None
 	uses_cash_method: bool = False
+	pays_health_insurance_since: str = None
 	hacks: Hacks = None
 
 
@@ -36,13 +42,14 @@ class Invoice:
 	description: str
 	id: str
 	date: date
-	taxable_amount: str
+	taxable_amount: Decimal
 	paid_on: date = None
-	vat_amount_applied: float = 0
-	vat_amount_required: float = None
+	vat_amount_applied: Decimal = 0
+	vat_amount_required: Decimal = None
 	billed_to: Entity = None
 	issuer: Entity = None
 	reverse_charge: bool = False
+	include_in_vat_registry: bool = True
 
 	@property
 	def contractor(self) -> Entity:
@@ -54,24 +61,24 @@ class Invoice:
 
 
 def load_invoice(data):
-	taxable_amount = data.pop('taxable_amount')
+	taxable_amount = Decimal(data.pop('taxable_amount')).quantize(Decimal('0.01'))
 
 	try:
-		vat_amount = data.pop('vat_amount')
+		vat_amount = Decimal(data.pop('vat_amount')).quantize(Decimal('0.01'))
 	except KeyError:
 		vat_amount = None
 
 	try:
-		vat_amount_applied = data.pop('vat_amount_applied')
+		vat_amount_applied = Decimal(data.pop('vat_amount_applied')).quantize(Decimal('0.01'))
 	except KeyError:
-		vat_amount_applied = vat_amount or 0
+		vat_amount_applied = vat_amount or Decimal('0.00')
 
 	try:
-		vat_amount_required = data.pop('vat_amount_required')
+		vat_amount_required = Decimal(data.pop('vat_amount_required')).quantize(Decimal('0.01'))
 	except KeyError:
 		vat_amount_required = vat_amount
 
-	calculated_vat_amount_required = round(taxable_amount * 0.23, 2)
+	calculated_vat_amount_required = (taxable_amount * Decimal('0.23')).quantize(Decimal('0.01'))
 	if not vat_amount_required:
 		vat_amount_required = calculated_vat_amount_required
 	#if vat_amount_required != calculated_vat_amount_required:
@@ -87,12 +94,27 @@ def load_invoice(data):
 	except KeyError:
 		billed_to = None
 
+	try:
+		invoice_date = date.fromisoformat(data.pop('date'))
+	except KeyError:
+		invoice_date = None
+
+	try:
+		paid_on = date.fromisoformat(data.pop('paid_on'))
+	except KeyError:
+		paid_on = None
+
+	include_in_vat_registry = parse_bool(data.pop('include_in_vat_registry', 'true'))
+
 	return Invoice(
 		taxable_amount = taxable_amount,
 		vat_amount_applied = vat_amount_applied,
 		vat_amount_required = vat_amount_required,
 		issuer = issuer,
 		billed_to = billed_to,
+		date = invoice_date,
+		paid_on = paid_on,
+		include_in_vat_registry = include_in_vat_registry,
 		**data
 	)
 
@@ -133,16 +155,27 @@ def gen_reverse_charge_invoices(subject, invoices):
 
 
 with open('data.yaml') as f:
-	data = yaml.safe_load(f.read())
+	data = yaml.load(f.read(), Loader=yaml.BaseLoader)
 
-try:
-	hacks = Hacks(**data['subject'].pop('hacks'))
-except KeyError:
-	hacks = Hacks()
+def parse_bool(s):
+	if s.lower() == 'true':
+		return True
+	if s.lower() == 'false':
+		return False
+	raise ValueError(s)
 
-subject = Subject(hacks = hacks, **data['subject'])
+raw_subject = data['subject']
+raw_hacks = raw_subject.pop('hacks', {})
+
+subject = Subject(
+	uses_cash_method = parse_bool(raw_subject.pop('uses_cash_method', 'false')),
+	hacks = Hacks(
+		reverse_charges_paid_on_invoice_date = parse_bool(raw_hacks.pop('reverse_charges_paid_on_invoice_date', 'false')),
+		**raw_hacks,
+	),
+	**raw_subject,
+)
 
 invoices = [load_invoice(invoice) for invoice in data['invoices']]
-invoices += gen_reverse_charge_invoices(subject, invoices)
 
-invoices = sorted(invoices, key = lambda i: i.tax_date)
+vat_invoices = sorted([i for i in invoices + gen_reverse_charge_invoices(subject, invoices) if i.include_in_vat_registry], key = lambda i: i.tax_date)

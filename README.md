@@ -1,5 +1,5 @@
 # Tax document generator for small businesses in Poland
-This is a set of scripts for automated accounting and **JPK_VAT** and **VAT-7** generation for small businesses in **Poland**.
+This is a set of scripts for automated single-entry accounting (*Podatkowa Księga Przychodów i Rozchodów*) and **JPK_VAT**, **JPK_PKPIR** and **VAT-7** generation for small businesses in **Poland**.
 
 ## Usage
 1. Check out the repo.
@@ -16,6 +16,7 @@ subject:
   auth_amount: 1234
   tax_office_code: 1435 # Pierwszy Urząd Skarbowy - Warszawa Śródmieście
   uses_cash_method: false # or true
+  pays_health_insurance_since: 2019-01
 
 
 
@@ -73,10 +74,13 @@ invoices:
   description: Serwer
   taxable_amount: 187.99
 ```
-3. Run `python jpk.py 2019-03` to generate a JPK file
+3. Run `python jpk_vat.py 2019-03` to generate a JPK_VAT file
 4. Run `python vat7.py 2019-03` to generate a VAT-7 file
+5. Run `python pit.py 2019-03` to calculate the PIT tax to pay
+
+If you need it, you can also
+- Run `python jpk_pkpir.py 2019-03` to generate a JPK_PKPIR file
 
 ## Future plans
-* PIT calculations
 * Support for declaration submission
 * Using Google Sheets as the data source

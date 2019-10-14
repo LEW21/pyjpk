@@ -1,10 +1,10 @@
 import sys
 from datetime import datetime, timezone, timedelta
 
-from data import subject, invoices
+from data import subject, vat_invoices
 
 
-def to_jpk(subject, invoices, month):
+def to_jpk_vat_v3(subject, invoices, month):
 	now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
 
 	since_dt = datetime.fromisoformat(month + '-01T00:00:00+00:00')
@@ -84,7 +84,7 @@ def to_jpk(subject, invoices, month):
 	""" for i, invoice in enumerate(received, 1)]
 
 	return f"""
-<JPK xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://jpk.mf.gov.pl/wzor/2017/11/13/1113/">
+<JPK xmlns="http://jpk.mf.gov.pl/wzor/2017/11/13/1113/">
 	<Naglowek>
 		<KodFormularza kodSystemowy="JPK_VAT (3)" wersjaSchemy="1-1">JPK_VAT</KodFormularza>
 		<WariantFormularza>3</WariantFormularza>
@@ -111,4 +111,4 @@ def to_jpk(subject, invoices, month):
 </JPK>
 	""".replace('>0.00<', '>0<')
 
-print(to_jpk(subject, invoices, sys.argv[1]))
+print(to_jpk_vat_v3(subject, vat_invoices, sys.argv[1]))
