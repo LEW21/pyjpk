@@ -15,7 +15,7 @@ class HealthInsurance:
 
 health_insurance = {
     2018: HealthInsurance(Decimal("319.94"), Decimal("275.51")),
-    2019: HealthInsurance(Decimal("342.23"), Decimal("294.78")),
+    2019: HealthInsurance(Decimal("342.32"), Decimal("294.78")),
 }
 
 income_deductions = subject.income_deductions or {}
