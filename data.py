@@ -34,6 +34,7 @@ class Subject(Entity):
 	auth_amount: Decimal = None
 	uses_cash_method: bool = False
 	pays_health_insurance_since: str = None
+	income_deductions: dict = None
 	hacks: Hacks = None
 
 

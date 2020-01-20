@@ -18,6 +18,8 @@ health_insurance = {
     2019: HealthInsurance(Decimal("342.23"), Decimal("294.78")),
 }
 
+income_deductions = subject.income_deductions or {}
+
 month_s = sys.argv[1]
 
 year = int(month_s[:4])
@@ -30,7 +32,10 @@ received = [i for i in invoices if i.issuer]
 
 revenue = sum(i.taxable_amount for i in issued)
 costs = sum(i.taxable_amount for i in received)
-income = revenue - costs
+base_income = revenue - costs
+
+income_deduction = sum((Decimal(x) for x in income_deductions.get(str(year), {}).values()), Decimal('0.00'))
+income = base_income - income_deduction
 
 tax_base = income.quantize(Decimal('1')).quantize(Decimal('0.01'))
 tax = (Decimal('0.19') * tax_base).quantize(Decimal('0.01'))
@@ -48,12 +53,14 @@ tax_advance = (tax - health_insurance.deductible).quantize(Decimal('1'))
 
 print(f"{year}-01 - {year}-{month:02}")
 print()
-print(f"Revenue:  {revenue:10}")
-print(f"Costs:    {costs:10}")
-print(f"Income:   {income:10}")
+print(f"Revenue:       {revenue:10}")
+print(f"Costs:         {costs:10}")
+print(f"Income:        {base_income:10}")
+print(f"I. deduction:  {income_deduction:10}")
+print(f"I. after ded.: {income:10}")
 print()
-print(f"Tax base: {tax_base:10}")
-print(f"19% PIT:  {tax:10}")
+print(f"Tax base:      {tax_base:10}")
+print(f"19% PIT:       {tax:10}")
 print()
 print(f"Health insurance (NFZ) paid: {health_insurance.paid}")
 print(f"Health insurance (NFZ) deductible: {health_insurance.deductible}")
